@@ -520,39 +520,61 @@ procesarFormulas proc
     mov si, 0           
 buscarInicio:
     cmp si, 7290        
-    jb analisis
+    jb comprobarSuma
     jmp finProcesar
 
-analisis:
+; --- 1. BUSCAMOS SUMA ---
+comprobarSuma:
     cmp buferInterfaz[si], 'S'
-    jne siguienteCaracterTmp
+    jne comprobarMul            
     cmp buferInterfaz[si+1], 'U'
-    jne siguienteCaracterTmp
+    jne comprobarMul
     cmp buferInterfaz[si+2], 'M'
-    jne siguienteCaracterTmp
+    jne comprobarMul
     cmp buferInterfaz[si+3], 'A'
-    jne siguienteCaracterTmp
+    jne comprobarMul
     cmp buferInterfaz[si+4], '('
-    jne siguienteCaracterTmp
+    jne comprobarMul
 
-    jmp salto
-
-siguienteCaracterTmp:
-    jmp siguienteCaracter
-
-salto:
     mov di, si          
     add si, 5           
+    jmp extraerNumeros          
 
+; --- 2. BUSCAMOS MUL ---
+comprobarMul:
+    cmp buferInterfaz[si], 'M'
+    jne saltoSiguiente      
+    cmp buferInterfaz[si+1], 'U'
+    jne saltoSiguiente
+    cmp buferInterfaz[si+2], 'L'
+    jne saltoSiguiente
+    cmp buferInterfaz[si+3], '('
+    jne saltoSiguiente
+
+    mov di, si          
+    add si, 4           
+    jmp extraerNumeros
+
+
+saltoSiguiente:
+    jmp siguienteCaracter
+
+
+saltoError:
+    jmp errorFormato
+
+
+; --- LÓGICA DE EXTRACCIÓN ---
+extraerNumeros:
     mov cx, 0           
 analizarA:
     mov al, buferInterfaz[si]
     cmp al, ','         
     je finAnalizarA
     cmp al, '0'
-    jl errorFormato    
+    jl saltoError       
     cmp al, '9'
-    jg errorFormato
+    jg saltoError       
 
     sub al, 30h         
     cbw                 
@@ -577,9 +599,9 @@ analizarB:
     cmp al, ')'         
     je finAnalizarB
     cmp al, '0'
-    jl errorFormato
+    jl saltoError       
     cmp al, '9'
-    jg errorFormato
+    jg saltoError       
 
     sub al, 30h         
     cbw                 
@@ -596,11 +618,29 @@ analizarB:
     jmp analizarB
 
 finAnalizarB:
+; --- DECISIÓN FINAL ---
+    mov al, buferInterfaz[di]
+    cmp al, 'S'
+    je hacerSuma
+    cmp al, 'M'
+    je hacerMul
+    jmp errorFormato            
+
+hacerSuma:
     mov ax, cx          
     mov bx, bp          
-    
-    int 60h             
+    int 60h                     
+    jmp limpiarYGuardar
 
+hacerMul:
+    mov ax, cx
+    mov bx, bp
+    mul bx                      
+    mov bx, ax                  
+    jmp limpiarYGuardar
+
+; --- LIMPIEZA Y GUARDADO ---
+limpiarYGuardar:
     push si             
     push di             
     
@@ -627,7 +667,6 @@ reemplazoExitoso:
 
 errorFormato:
     mov si, di          
-
 siguienteCaracter:
     inc si
     jmp buscarInicio
