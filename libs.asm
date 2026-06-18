@@ -19,145 +19,100 @@
 
 public inicializarBufer
 public cargarArchivo
+public limpiarPantalla
 public dibujarInterfaz
 public actualizarCursor
 public procesarRaton
 public escribirCaracter
-public borrarCaracter
 public manejarFlechas
-public guardarArchivo
-public limpiarPantalla
+public borrarCaracter
 public procesarFormulas
-public regAAscii
+public guardarArchivo
 public imprimirReg
+public regAAscii
 
-; ==========================================
-; NAVEGACIÓN Y 4 PÁGINAS (2x2)
-; ==========================================
-manejarFlechas proc
-    cmp ah, 48h
-    je mArriba
-    cmp ah, 50h
-    je mAbajo
-    cmp ah, 4Bh
-    je mIzquierda
-    cmp ah, 4Dh
-    je mDerecha
-    ret
-
-mArriba:
-    cmp celdaActualY, 1
-    jle finMov
-    dec celdaActualY
-    call verificarPagina
-    jmp mover
-
-mAbajo:
-    cmp celdaActualY, 48
-    jge finMov
-    inc celdaActualY
-    call verificarPagina
-    jmp mover
-
-mIzquierda:
-    cmp celdaActualX, 1
-    jle finMov
-    dec celdaActualX
-    call verificarPagina
-    jmp mover
-
-mDerecha:
-    cmp celdaActualX, 14      
-    jge finMov
-    inc celdaActualX
-    call verificarPagina
-    jmp mover
-
-mover:
-    call actualizarCursor
-finMov:
-    ret
-manejarFlechas endp
-
-verificarPagina proc
-    push ax
-    push bx
-    mov bl, 0           
-
-    mov al, celdaActualY
-    cmp al, 24
-    jg pyUno
-pyCero:
-    cmp paginaY, 0
-    je verificarPx
-    mov paginaY, 0
-    mov bl, 1
-    jmp verificarPx
-pyUno:
-    cmp paginaY, 1
-    je verificarPx
-    mov paginaY, 1
-    mov bl, 1
-
-verificarPx:
-    mov al, celdaActualX
-    cmp al, 7
-    jg pxUno
-pxCero:
-    cmp paginaX, 0
-    je finVerificar
-    mov paginaX, 0
-    mov bl, 1
-    jmp finVerificar
-pxUno:
-    cmp paginaX, 1
-    je finVerificar
-    mov paginaX, 1
-    mov bl, 1
-
-finVerificar:
-    cmp bl, 1
-    jne salirVp
-    call limpiarPantalla            
-    call dibujarInterfaz
-salirVp:
-    pop bx
-    pop ax
-    ret
-verificarPagina endp
-
-actualizarCursor proc
-    push ax
-    push bx
-    push dx
-    
-    mov al, celdaActualX
-    cmp paginaX, 1
-    jne calcularCx
-    sub al, 7               
-calcularCx:
+inicializarBufer proc
+    mov cx, 48              
+    mov di, 0               
+formatearFila:
+    push cx
+    mov cx, 150             
+    mov dx, 0               
+formatearCol:
+    mov ax, dx
     mov bl, 10
-    mul bl
-    inc ax
-    mov dl, al              
+    div bl
+    cmp ah, 0
+    je ponerLinea
+    mov al, ' '
+    jmp guardarCaracter
+ponerLinea:
+    mov al, '|'
+guardarCaracter:
+    mov buferInterfaz[di], al
+    inc di
+    inc dx
+    loop formatearCol
     
-    mov al, celdaActualY
-    cmp paginaY, 1
-    jne establecerCy
-    sub al, 24              
-establecerCy:
-    mov dh, al  
+    mov byte ptr buferInterfaz[di], 13     
+    mov byte ptr buferInterfaz[di+1], 10   
+    add di, 2
     
-    mov ah, 02h
-    mov bh, 0
-    int 10h
-    mov letrasCelda, 0     
-    
+    pop cx
+    loop formatearFila
+    ret
+inicializarBufer endp
+
+cargarArchivo proc
+    push ax
+    push bx
+    push cx
+    push dx
+    mov ah, 3Dh ;Cargamos en AH el codigo para abrir una funcion existente
+    mov al, 0 ;Modo de solo lectura (read only)
+    lea dx, nombreArchivo
+    int 21h
+    jc finCargar  ;Jump if carry, si el archivo no existe se pone en 1
+    mov buferArchivo, ax
+    mov ah, 3Fh
+    mov bx, buferArchivo
+    mov cx, 7296            
+    lea dx, buferInterfaz
+    int 21h
+    mov ah, 3Eh
+    mov bx, buferArchivo
+    int 21h
+finCargar:
     pop dx
+    pop cx
     pop bx
     pop ax
     ret
-actualizarCursor endp
+cargarArchivo endp
+
+limpiarPantalla proc
+    push ax
+    push es
+    push cx
+    push di
+    
+    mov ax, 3
+    int 10h
+    
+    mov ax, 0b800h
+    mov es, ax
+    mov cx, 2000      
+    mov ax, 0720h     
+    mov di, 0         
+    cld
+    rep stosw
+    
+    pop di
+    pop cx
+    pop es
+    pop ax
+    ret 
+limpiarPantalla endp
 
 ; ==========================================
 ; GRÁFICOS Y RATÓN
@@ -274,6 +229,39 @@ dibujarFilas:
     ret
 dibujarInterfaz endp
 
+actualizarCursor proc
+    push ax
+    push bx
+    push dx
+    
+    mov al, celdaActualX
+    cmp paginaX, 1
+    jne calcularCx
+    sub al, 7               
+calcularCx:
+    mov bl, 10
+    mul bl
+    inc ax
+    mov dl, al              
+    
+    mov al, celdaActualY
+    cmp paginaY, 1
+    jne establecerCy
+    sub al, 24              
+establecerCy:
+    mov dh, al  
+    
+    mov ah, 02h
+    mov bh, 0
+    int 10h
+    mov letrasCelda, 0     
+    
+    pop dx
+    pop bx
+    pop ax
+    ret
+actualizarCursor endp
+
 procesarRaton proc
     push ax
     push bx
@@ -381,6 +369,101 @@ finEscritura:
     ret
 escribirCaracter endp
 
+; ==========================================
+; NAVEGACIÓN Y 4 PÁGINAS (2x2)
+; ==========================================
+manejarFlechas proc
+    cmp ah, 48h
+    je mArriba
+    cmp ah, 50h
+    je mAbajo
+    cmp ah, 4Bh
+    je mIzquierda
+    cmp ah, 4Dh
+    je mDerecha
+    ret
+
+mArriba:
+    cmp celdaActualY, 1
+    jle finMov
+    dec celdaActualY
+    call verificarPagina
+    jmp mover
+
+mAbajo:
+    cmp celdaActualY, 48
+    jge finMov
+    inc celdaActualY
+    call verificarPagina
+    jmp mover
+
+mIzquierda:
+    cmp celdaActualX, 1
+    jle finMov
+    dec celdaActualX
+    call verificarPagina
+    jmp mover
+
+mDerecha:
+    cmp celdaActualX, 14      
+    jge finMov
+    inc celdaActualX
+    call verificarPagina
+    jmp mover
+
+mover:
+    call actualizarCursor
+finMov:
+    ret
+manejarFlechas endp
+
+verificarPagina proc
+    push ax
+    push bx
+    mov bl, 0           
+
+    mov al, celdaActualY
+    cmp al, 24
+    jg pyUno
+pyCero:
+    cmp paginaY, 0
+    je verificarPx
+    mov paginaY, 0
+    mov bl, 1
+    jmp verificarPx
+pyUno:
+    cmp paginaY, 1
+    je verificarPx
+    mov paginaY, 1
+    mov bl, 1
+
+verificarPx:
+    mov al, celdaActualX
+    cmp al, 7
+    jg pxUno
+pxCero:
+    cmp paginaX, 0
+    je finVerificar
+    mov paginaX, 0
+    mov bl, 1
+    jmp finVerificar
+pxUno:
+    cmp paginaX, 1
+    je finVerificar
+    mov paginaX, 1
+    mov bl, 1
+
+finVerificar:
+    cmp bl, 1
+    jne salirVp
+    call limpiarPantalla            
+    call dibujarInterfaz
+salirVp:
+    pop bx
+    pop ax
+    ret
+verificarPagina endp
+
 borrarCaracter proc
     push ax
     push bx
@@ -425,64 +508,179 @@ finBorrado:
     ret
 borrarCaracter endp
 
-inicializarBufer proc
-    mov cx, 48              
-    mov di, 0               
-formatearFila:
-    push cx
-    mov cx, 150             
-    mov dx, 0               
-formatearCol:
-    mov ax, dx
-    mov bl, 10
-    div bl
-    cmp ah, 0
-    je ponerLinea
-    mov al, ' '
-    jmp guardarCaracter
-ponerLinea:
-    mov al, '|'
-guardarCaracter:
-    mov buferInterfaz[di], al
-    inc di
-    inc dx
-    loop formatearCol
-    
-    mov byte ptr buferInterfaz[di], 13     
-    mov byte ptr buferInterfaz[di+1], 10   
-    add di, 2
-    
-    pop cx
-    loop formatearFila
-    ret
-inicializarBufer endp
-
-cargarArchivo proc
+procesarFormulas proc
     push ax
     push bx
     push cx
     push dx
-    mov ah, 3Dh
-    mov al, 0
-    lea dx, nombreArchivo
-    int 21h
-    jc finCargar       
-    mov buferArchivo, ax
-    mov ah, 3Fh
-    mov bx, buferArchivo
-    mov cx, 7296            
-    lea dx, buferInterfaz
-    int 21h
-    mov ah, 3Eh
-    mov bx, buferArchivo
-    int 21h
-finCargar:
+    push si
+    push di
+    push bp
+
+    mov si, 0           
+buscarInicio:
+    cmp si, 7290        
+    jb comprobarSuma
+    jmp finProcesar
+
+; --- 1. BUSCAMOS SUMA ---
+comprobarSuma:
+    cmp buferInterfaz[si], 'S'
+    jne comprobarMul            
+    cmp buferInterfaz[si+1], 'U'
+    jne comprobarMul
+    cmp buferInterfaz[si+2], 'M'
+    jne comprobarMul
+    cmp buferInterfaz[si+3], 'A'
+    jne comprobarMul
+    cmp buferInterfaz[si+4], '('
+    jne comprobarMul
+
+    mov di, si          
+    add si, 5           
+    jmp extraerNumeros          
+
+; --- 2. BUSCAMOS MUL ---
+comprobarMul:
+    cmp buferInterfaz[si], 'M'
+    jne saltoSiguiente      
+    cmp buferInterfaz[si+1], 'U'
+    jne saltoSiguiente
+    cmp buferInterfaz[si+2], 'L'
+    jne saltoSiguiente
+    cmp buferInterfaz[si+3], '('
+    jne saltoSiguiente
+
+    mov di, si          
+    add si, 4           
+    jmp extraerNumeros
+
+
+saltoSiguiente:
+    jmp siguienteCaracter
+
+
+saltoError:
+    jmp errorFormato
+
+
+; --- LÓGICA DE EXTRACCIÓN ---
+extraerNumeros:
+    mov cx, 0           
+analizarA:
+    mov al, buferInterfaz[si]
+    cmp al, ','         
+    je finAnalizarA
+    cmp al, '0'
+    jl saltoError       
+    cmp al, '9'
+    jg saltoError       
+
+    sub al, 30h         
+    cbw                 
+    push ax             
+    
+    mov ax, cx          
+    mov bx, 10
+    mul bx              
+    pop bx              
+    add ax, bx          
+    mov cx, ax          
+    
+    inc si
+    jmp analizarA
+
+finAnalizarA:
+    inc si              
+
+    mov bp, 0
+analizarB:
+    mov al, buferInterfaz[si]
+    cmp al, ')'         
+    je finAnalizarB
+    cmp al, '0'
+    jl saltoError       
+    cmp al, '9'
+    jg saltoError       
+
+    sub al, 30h         
+    cbw                 
+    push ax             
+    
+    mov ax, bp          
+    mov bx, 10
+    mul bx              
+    pop bx              
+    add ax, bx          
+    mov bp, ax          
+    
+    inc si
+    jmp analizarB
+
+finAnalizarB:
+; --- DECISIÓN FINAL ---
+    mov al, buferInterfaz[di]
+    cmp al, 'S'
+    je hacerSuma
+    cmp al, 'M'
+    je hacerMul
+    jmp errorFormato            
+
+hacerSuma:
+    mov ax, cx          
+    mov bx, bp          
+    int 60h                     
+    jmp limpiarYGuardar
+
+hacerMul:
+    mov ax, cx
+    mov bx, bp
+    mul bx                      
+    mov bx, ax                  
+    jmp limpiarYGuardar
+
+; --- LIMPIEZA Y GUARDADO ---
+limpiarYGuardar:
+    push si             
+    push di             
+    
+    mov dl, bl              
+    lea bx, buferInterfaz[di] 
+    call regAAscii                
+
+    pop di              
+    pop bp              
+
+    add di, 3           
+
+limpiarRestos:
+    cmp di, bp          
+    jg reemplazoExitoso
+    mov buferInterfaz[di], ' '
+    inc di
+    jmp limpiarRestos
+
+reemplazoExitoso:
+    mov si, di          
+    dec si              
+    jmp siguienteCaracter
+
+errorFormato:
+    mov si, di          
+siguienteCaracter:
+    inc si
+    jmp buscarInicio
+
+finProcesar:
+    pop bp
+    pop di
+    pop si
     pop dx
     pop cx
     pop bx
     pop ax
     ret
-cargarArchivo endp
+procesarFormulas endp
 
 guardarArchivo proc
     push ax
@@ -516,29 +714,18 @@ finGuardado:
     ret
 guardarArchivo endp
 
-limpiarPantalla proc
+imprimirReg proc
+    push dx
     push ax
-    push es
-    push cx
-    push di
-    
-    mov ax, 3
-    int 10h
-    
-    mov ax, 0b800h
-    mov es, ax
-    mov cx, 2000      
-    mov ax, 0720h     
-    mov di, 0         
-    cld
-    rep stosw
-    
-    pop di
-    pop cx
-    pop es
+
+    mov dx, bx
+    mov ah, 9
+    int 21h
+
     pop ax
-    ret 
-limpiarPantalla endp
+    pop dx
+    ret
+imprimirReg endp
 
 regAAscii proc
     push ax
@@ -569,153 +756,5 @@ regAAscii proc
     pop ax
     ret
 regAAscii endp
-
-procesarFormulas proc
-    push ax
-    push bx
-    push cx
-    push dx
-    push si
-    push di
-    push bp
-
-    mov si, 0           
-buscarInicio:
-    cmp si, 7290        
-    jb analisis
-    jmp finProcesar
-
-analisis:
-    cmp buferInterfaz[si], 'S'
-    jne siguienteCaracterTmp
-    cmp buferInterfaz[si+1], 'U'
-    jne siguienteCaracterTmp
-    cmp buferInterfaz[si+2], 'M'
-    jne siguienteCaracterTmp
-    cmp buferInterfaz[si+3], 'A'
-    jne siguienteCaracterTmp
-    cmp buferInterfaz[si+4], '('
-    jne siguienteCaracterTmp
-
-    jmp salto
-
-siguienteCaracterTmp:
-    jmp siguienteCaracter
-
-salto:
-    mov di, si          
-    add si, 5           
-
-    mov cx, 0           
-analizarA:
-    mov al, buferInterfaz[si]
-    cmp al, ','         
-    je finAnalizarA
-    cmp al, '0'
-    jl errorFormato    
-    cmp al, '9'
-    jg errorFormato
-
-    sub al, 30h         
-    cbw                 
-    push ax             
-    
-    mov ax, cx          
-    mov bx, 10
-    mul bx              
-    pop bx              
-    add ax, bx          
-    mov cx, ax          
-    
-    inc si
-    jmp analizarA
-
-finAnalizarA:
-    inc si              
-
-    mov bp, 0
-analizarB:
-    mov al, buferInterfaz[si]
-    cmp al, ')'         
-    je finAnalizarB
-    cmp al, '0'
-    jl errorFormato
-    cmp al, '9'
-    jg errorFormato
-
-    sub al, 30h         
-    cbw                 
-    push ax             
-    
-    mov ax, bp          
-    mov bx, 10
-    mul bx              
-    pop bx              
-    add ax, bx          
-    mov bp, ax          
-    
-    inc si
-    jmp analizarB
-
-finAnalizarB:
-    mov ax, cx          
-    mov bx, bp          
-    
-    int 60h             
-
-    push si             
-    push di             
-    
-    mov dl, bl              
-    lea bx, buferInterfaz[di] 
-    call regAAscii                
-
-    pop di              
-    pop bp              
-
-    add di, 3           
-
-limpiarRestos:
-    cmp di, bp          
-    jg reemplazoExitoso
-    mov buferInterfaz[di], ' '
-    inc di
-    jmp limpiarRestos
-
-reemplazoExitoso:
-    mov si, di          
-    dec si              
-    jmp siguienteCaracter
-
-errorFormato:
-    mov si, di          
-
-siguienteCaracter:
-    inc si
-    jmp buscarInicio
-
-finProcesar:
-    pop bp
-    pop di
-    pop si
-    pop dx
-    pop cx
-    pop bx
-    pop ax
-    ret
-procesarFormulas endp
-
-imprimirReg proc
-    push dx
-    push ax
-
-    mov dx, bx
-    mov ah, 9
-    int 21h
-
-    pop ax
-    pop dx
-    ret
-imprimirReg endp
 
 end
