@@ -16,7 +16,8 @@ Un programa desarrollado en Ensamblador 8086 (16 bits) que emula las funcionalid
 * **Persistencia de Datos:** Guarda y carga automáticamente el estado de la hoja en un archivo local llamado `grilla.txt`.
 
 
-* **Motor de Fórmulas Avanzado:** Al presionar la tecla de salida, el programa escanea la grilla para procesar automáticamente fórmulas escritas. Actualmente soporta las operaciones matemáticas `SUM(X,Y)`, `RES(X,Y)`, `MUL(X,Y)` y `MAX(X,Y)`. Exclusivamente, la función `MAX(X,Y)` es capaz de analizar y comparar tanto números enteros como caracteres ASCII.
+* **Motor de Fórmulas Avanzado:** Al presionar la tecla de salida, el programa escanea la grilla para procesar automáticamente fórmulas escritas. Actualmente soporta las operaciones matemáticas `S(X,Y)`, `R(X,Y)`, `M(X,Y)` y `X(X,Y)`. Exclusivamente, la función `X(X,Y)` es capaz de analizar y comparar tanto números enteros como caracteres ASCII.
+Las fórmulas permiten llamados hacia otras filas/columnas, Ej: S(A14,G5).
 
 
 * **Cierre Controlado:** Al finalizar y guardar el programa, este limpia la pantalla de MS-DOS e imprime en consola el mensaje "Salida de programa exitosa".
@@ -30,7 +31,7 @@ Para compilar y ejecutar este programa en su totalidad, incluyendo las operacion
 * **Manejador de Ratón:** El entorno (MS-DOS nativo o DOSBox) debe tener un controlador de ratón activo para que la selección gráfica funcione.
 
 
-* **Programa Residente (TSR):** La operación de suma (`SUM(X,Y)`) delega su procesamiento a un programa Terminate and Stay Resident (TSR) personalizado. Este TSR captura e instala una rutina de servicio de interrupción (ISR) en el vector `60h` utilizando la interrupción de MS-DOS `21h`.
+* **Programa Residente (TSR):** La operación de suma (`S(X,Y)`) delega su procesamiento a un programa Terminate and Stay Resident (TSR) personalizado. Este TSR captura e instala una rutina de servicio de interrupción (ISR) en el vector `60h` utilizando la interrupción de MS-DOS `21h`.
 
 
 * **Lógica del TSR:** Una vez cargada en la memoria, la rutina interceptada se encarga de sumar directamente el valor del registro AX al registro BX.
