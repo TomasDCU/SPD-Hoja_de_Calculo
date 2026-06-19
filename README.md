@@ -36,7 +36,7 @@ Para compilar y ejecutar este programa en su totalidad, incluyendo las operacion
 * **Lógica del TSR:** Una vez cargada en la memoria, la rutina interceptada se encarga de sumar directamente el valor del registro AX al registro BX.
 
 
-* **Compilación del TSR:** El código del programa residente usa la directiva de modelo `tiny` para crear un archivo `.COM`. Para compilarlo e instalarlo, deben ejecutarse los comandos `tasm tsr2.asm` seguido de `tlink /t tsr2.obj` en la terminal antes de abrir la hoja de cálculo.
+* **Compilación del TSR:** El código del programa residente usa la directiva de modelo `tiny` para crear un archivo `.COM`. Para compilarlo e instalarlo, deben ejecutarse los comandos `tasm int.asm` seguido de `tlink /t int.obj` en la terminal antes de abrir la hoja de cálculo.
 
 
 
