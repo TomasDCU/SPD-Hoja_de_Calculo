@@ -27,6 +27,7 @@ public escribirCaracter
 public manejarFlechas
 public borrarCaracter
 public procesarFormulas
+public resolverReferencia
 public guardarArchivo
 public imprimirReg
 public regAAscii
@@ -536,6 +537,85 @@ finBorrado:
 borrarCaracter endp
 
 ; ==========================================
+; Referencia casillas
+; ==========================================
+
+resolverReferencia proc
+    push bx
+    push cx
+    push dx
+    push di
+
+    mov al, buferInterfaz[si]
+    sub al, 'A'
+    inc al
+    cbw
+    mov cx, 10
+    mul cx
+    inc ax
+    mov di, ax
+
+    inc si
+    mov cx, 0
+leerFilaRef:
+    mov al, buferInterfaz[si]
+    cmp al, '0'
+    jl finFilaRef
+    cmp al, '9'
+    jg finFilaRef
+
+    sub al, 30h
+    cbw
+    push ax
+    mov ax, cx
+    mov bx, 10
+    mul bx
+    pop bx
+    add ax, bx
+    mov cx, ax
+
+    inc si
+    jmp leerFilaRef
+
+finFilaRef:
+    dec cx
+    mov ax, cx
+    mov cx, 152
+    mul cx
+    add di, ax
+
+    mov cx, 0
+leerValorRef:
+    mov al, buferInterfaz[di]
+    cmp al, '0'
+    jl finValorRef
+    cmp al, '9'
+    jg finValorRef
+
+    sub al, 30h
+    cbw
+    push ax
+    mov ax, cx
+    mov bx, 10
+    mul bx
+    pop bx
+    add ax, bx
+    mov cx, ax
+
+    inc di
+    jmp leerValorRef
+
+finValorRef:
+    mov ax, cx
+
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    ret
+resolverReferencia endp
+
+; ==========================================
 ; Formulas
 ; ==========================================
 
@@ -554,7 +634,6 @@ buscarInicio:
     jb comprobarSuma
     jmp finProcesar
 
-; --- 1. BUSCAMOS SUM ---
 comprobarSuma:
     cmp buferInterfaz[si], 'S'
     jne comprobarRes
@@ -569,10 +648,9 @@ comprobarSuma:
     add si, 4
     jmp extraerNumeros
 
-; --- 2. BUSCAMOS RES ---
 comprobarRes:
     cmp buferInterfaz[si], 'R'
-    jne comprobarMul ; Si no es RES, seguimos con MUL
+    jne comprobarMul
     cmp buferInterfaz[si+1], 'E'
     jne comprobarMul
     cmp buferInterfaz[si+2], 'S'
@@ -584,7 +662,6 @@ comprobarRes:
     add si, 4
     jmp extraerNumeros
 
-; --- 3. BUSCAMOS MUL ---
 comprobarMul:
     cmp buferInterfaz[si], 'M'
     jne saltoSiguiente
@@ -599,7 +676,6 @@ comprobarMul:
     add si, 4
     jmp extraerNumeros
 
-; --- 4. BUSCAMOS MAX ---
 comprobarMax:
     cmp buferInterfaz[si+1], 'A'
     jne saltoSiguiente
@@ -611,27 +687,30 @@ comprobarMax:
     mov di, si
     add si, 4
 
-    ; Verificamos si es letra o número
     mov al, buferInterfaz[si]
     cmp al, '0'
-    jl esLetraMax
+    jl comprobarLetraMax
     cmp al, '9'
-    jg esLetraMax
+    jg comprobarLetraMax
+    jmp extraerNumeros
+
+comprobarLetraMax:
+    mov al, buferInterfaz[si+1]
+    cmp al, ','
+    je esLetraMax
     jmp extraerNumeros
 
 esLetraMax:
-    ; Extracción de parámetros tipo carácter MAX(X,Y)
-    mov bl, buferInterfaz[si] ; X
+    mov bl, buferInterfaz[si]
     inc si
     cmp buferInterfaz[si], ','
     jne saltoError
     inc si
-    mov bh, buferInterfaz[si] ; Y
+    mov bh, buferInterfaz[si]
     inc si
     cmp buferInterfaz[si], ')'
     jne saltoError
 
-    ; Comparamos los caracteres ASCII
     cmp bl, bh
     jge guardarLetraMax
     mov bl, bh
@@ -648,13 +727,15 @@ saltoSiguiente:
 saltoError:
     jmp errorFormato
 
-; --- LÓGICA DE EXTRACCIÓN ---
 extraerNumeros:
     mov cx, 0
 analizarA:
     mov al, buferInterfaz[si]
     cmp al, ','
     je finAnalizarA
+    cmp al, 'A'
+    jge esRefA
+
     cmp al, '0'
     jl saltoError
     cmp al, '9'
@@ -674,6 +755,16 @@ analizarA:
     inc si
     jmp analizarA
 
+esRefA:
+    call resolverReferencia
+    mov cx, ax
+buscarComaA:
+    mov al, buferInterfaz[si]
+    cmp al, ','
+    je finAnalizarA
+    inc si
+    jmp buscarComaA
+
 finAnalizarA:
     inc si
 
@@ -682,6 +773,9 @@ analizarB:
     mov al, buferInterfaz[si]
     cmp al, ')'
     je finAnalizarB
+    cmp al, 'A'
+    jge esRefB
+
     cmp al, '0'
     jl saltoError
     cmp al, '9'
@@ -701,13 +795,22 @@ analizarB:
     inc si
     jmp analizarB
 
+esRefB:
+    call resolverReferencia
+    mov bp, ax
+buscarParenB:
+    mov al, buferInterfaz[si]
+    cmp al, ')'
+    je finAnalizarB
+    inc si
+    jmp buscarParenB
+
 finAnalizarB:
-; --- DECISIÓN FINAL ---
     mov al, buferInterfaz[di]
     cmp al, 'S'
     je hacerSuma
     cmp al, 'R'
-    je hacerRes ; Nuevo salto para procesar la resta
+    je hacerRes
     cmp al, 'M'
     je decidirMulOMax
     jmp errorFormato
@@ -749,7 +852,6 @@ maxEsCX:
     mov bx, ax
     jmp limpiarYGuardar
 
-; --- LIMPIEZA Y GUARDADO ---
 limpiarYGuardar:
     push si
     push di
