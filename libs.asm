@@ -637,55 +637,41 @@ buscarInicio:
 comprobarSuma:
     cmp buferInterfaz[si], 'S'
     jne comprobarRes
-    cmp buferInterfaz[si+1], 'U'
-    jne comprobarRes
-    cmp buferInterfaz[si+2], 'M'
-    jne comprobarRes
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('    ; Busca S(
     jne comprobarRes
 
     mov di, si
-    add si, 4
+    add si, 2                       ; Avanza 2 espacios
     jmp extraerNumeros
 
 comprobarRes:
     cmp buferInterfaz[si], 'R'
     jne comprobarMul
-    cmp buferInterfaz[si+1], 'E'
-    jne comprobarMul
-    cmp buferInterfaz[si+2], 'S'
-    jne comprobarMul
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('    ; Busca R(
     jne comprobarMul
 
     mov di, si
-    add si, 4
+    add si, 2
     jmp extraerNumeros
 
 comprobarMul:
     cmp buferInterfaz[si], 'M'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+1], 'U'
     jne comprobarMax
-    cmp buferInterfaz[si+2], 'L'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+3], '('
-    jne saltoSiguiente
+    cmp buferInterfaz[si+1], '('    ; Busca M(
+    jne comprobarMax
 
     mov di, si
-    add si, 4
+    add si, 2
     jmp extraerNumeros
 
 comprobarMax:
-    cmp buferInterfaz[si+1], 'A'
+    cmp buferInterfaz[si], 'X'      ; Busca X(
     jne saltoSiguiente
-    cmp buferInterfaz[si+2], 'X'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('
     jne saltoSiguiente
 
     mov di, si
-    add si, 4
+    add si, 2
 
     mov al, buferInterfaz[si]
     cmp al, '0'
@@ -806,21 +792,15 @@ buscarParenB:
     jmp buscarParenB
 
 finAnalizarB:
-    mov al, buferInterfaz[di]
+    mov al, buferInterfaz[di]       ; Lee la única letra de la función
     cmp al, 'S'
     je hacerSuma
     cmp al, 'R'
     je hacerRes
     cmp al, 'M'
-    je decidirMulOMax
-    jmp errorFormato
-
-decidirMulOMax:
-    mov al, buferInterfaz[di+1]
-    cmp al, 'U'
-    je hacerMul
-    cmp al, 'A'
-    je hacerMaxNum
+    je hacerMul                     ; Va directo a multiplicar
+    cmp al, 'X'
+    je hacerMaxNum                  ; Va directo a calcular el máximo
     jmp errorFormato
 
 hacerSuma:
