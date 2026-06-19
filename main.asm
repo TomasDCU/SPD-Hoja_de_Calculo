@@ -1,4 +1,4 @@
-.8086 
+.8086
 .model small
 .stack 100h
 
@@ -12,7 +12,7 @@ extrn inicializarBufer:proc
 extrn cargarArchivo:proc
 extrn dibujarInterfaz:proc
 extrn actualizarCursor:proc
-extrn procesarRaton:proc
+extrn procesarMouse:proc
 extrn escribirCaracter:proc
 extrn borrarCaracter:proc
 extrn manejarFlechas:proc
@@ -28,7 +28,7 @@ main proc
 
     call inicializarBufer
     call cargarArchivo
-    call limpiarPantalla            
+    call limpiarPantalla
     call dibujarInterfaz
 
 ; Inicializar mouse
@@ -41,7 +41,7 @@ main proc
 cicloPrincipal:
     mov ax, 0003h
     int 33h
-    test bx, 1              
+    test bx, 1
     jnz clicRaton
     
     mov ah, 01h
@@ -50,11 +50,11 @@ cicloPrincipal:
     jmp cicloPrincipal
 
 clicRaton:
-    call procesarRaton
+    call procesarMouse
     jmp cicloPrincipal
 
 leerTecla:
-    mov ah, 00h             
+    mov ah, 00h
     int 16h
     
     cmp al, 27
@@ -89,7 +89,7 @@ salirPrograma:
     call limpiarPantalla
 
     lea bx, mensajeSalida
-    call imprimirReg          
+    call imprimirReg
     
     mov ax, 4C00h
     int 21h
