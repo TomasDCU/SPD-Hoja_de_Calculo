@@ -1,46 +1,69 @@
 # 🧮 Hoja de Cálculo MS-DOS (Ensamblador 8086)
 
-Un programa desarrollado en Ensamblador 8086 (16 bits) que emula las funcionalidades básicas de una hoja de cálculo para el sistema operativo MS-DOS. Permite la navegación por cuadrícula, edición de celdas, persistencia de datos en disco y cálculo de fórmulas matemáticas personalizadas.
+Un programa desarrollado en Ensamblador 8086 (16 bits) que emula las funcionalidades básicas de una hoja de cálculo para el sistema operativo MS-DOS. Permite la navegación por cuadrícula, edición de celdas, persistencia de datos en disco y cálculo de múltiples fórmulas matemáticas.
 
 ## 🚀 Características Principales
 
-* **Cuadrícula Extendida con Paginación:** Soporta una grilla total de 14 columnas por 48 filas. Dado que sobrepasa los límites de la pantalla estándar de texto de MS-DOS (80x25), incluye un motor de cámara que divide el área de trabajo en 4 "páginas" (matriz de 2x2) que se actualizan automáticamente al llegar a los bordes.
-* **Control Dual (Teclado y Ratón):** * Navegación fluida de celda en celda utilizando las flechas del teclado.
-* Soporte completo para API de ratón (interrupción `33h`) para seleccionar celdas haciendo clic directamente en la pantalla.
+* **Cuadrícula Extendida:** Soporta una grilla total de 14 columnas por 48 filas, dividida en 4 "páginas" (matriz de 2x2) que se actualizan automáticamente al mover el cursor hacia los bordes.
 
 
-* **Edición en Tiempo Real:** Permite escribir y borrar (Backspace) texto directamente sobre las celdas, con un límite seguro de 9 caracteres por celda para evitar desbordamientos visuales.
-* **Persistencia de Datos:** Guarda y carga automáticamente el progreso en un archivo local llamado `grilla.txt` (formateado correctamente con saltos de línea y separadores).
-* **Procesamiento de Fórmulas:** Cuenta con un motor de parsing que busca funciones como `SUMA(X,Y)` en la grilla, delegando la operación matemática a una interrupción de software personalizada (`int 60h`).
+* **Control Dual:** Permite la navegación de celda en celda utilizando las flechas de dirección del teclado. También incluye soporte para la interrupción `33h` del ratón, lo que permite seleccionar celdas directamente con un clic.
 
-## 🛠️ Requisitos del Sistema
 
-Para compilar y ejecutar este programa, necesitarás:
+* **Edición en Tiempo Real:** Permite escribir caracteres en las celdas con un límite seguro de 9 letras por celda. También soporta el borrado carácter por carácter mediante la tecla de retroceso (Backspace).
 
-* **Entorno MS-DOS:** Un sistema MS-DOS nativo o un emulador como **DOSBox**.
-* **Ensamblador:** Compatible con TASM (Turbo Assembler) o MASM, utilizando el modelo de memoria `small`.
-* **Manejador de Ratón:** El entorno debe tener un controlador de ratón cargado (ej. `mouse.com` en DOS puro) para que la `int 33h` funcione.
-* **Dependencia de Fórmulas:** El cálculo de la instrucción `SUMA` depende de un programa residente en memoria (TSR) configurado en la **interrupción `60h**`. Si este TSR no está cargado previamente en tu entorno, las fórmulas no se resolverán (o el programa podría fallar al llamar a un vector de interrupción vacío).
+
+* **Persistencia de Datos:** Guarda y carga automáticamente el estado de la hoja en un archivo local llamado `grilla.txt`.
+
+
+* **Motor de Fórmulas Avanzado:** Al presionar la tecla de salida, el programa escanea la grilla para procesar automáticamente fórmulas escritas. Actualmente soporta las operaciones matemáticas `SUM(X,Y)`, `RES(X,Y)`, `MUL(X,Y)` y `MAX(X,Y)`. Exclusivamente, la función `MAX(X,Y)` es capaz de analizar y comparar tanto números enteros como caracteres ASCII.
+
+
+* **Cierre Controlado:** Al finalizar y guardar el programa, este limpia la pantalla de MS-DOS e imprime en consola el mensaje "Salida de programa exitosa".
+
+
+
+## 🛠️ Requisitos del Sistema y Dependencias (TSR)
+
+Para compilar y ejecutar este programa en su totalidad, incluyendo las operaciones matemáticas, se necesitan los siguientes componentes:
+
+* **Manejador de Ratón:** El entorno (MS-DOS nativo o DOSBox) debe tener un controlador de ratón activo para que la selección gráfica funcione.
+
+
+* **Programa Residente (TSR):** La operación de suma (`SUM(X,Y)`) delega su procesamiento a un programa Terminate and Stay Resident (TSR) personalizado. Este TSR captura e instala una rutina de servicio de interrupción (ISR) en el vector `60h` utilizando la interrupción de MS-DOS `21h`.
+
+
+* **Lógica del TSR:** Una vez cargada en la memoria, la rutina interceptada se encarga de sumar directamente el valor del registro AX al registro BX.
+
+
+* **Compilación del TSR:** El código del programa residente usa la directiva de modelo `tiny` para crear un archivo `.COM`. Para compilarlo e instalarlo, deben ejecutarse los comandos `tasm tsr2.asm` seguido de `tlink /t tsr2.obj` en la terminal antes de abrir la hoja de cálculo.
+
+
 
 ## 🎮 Controles
 
-| Acción | Tecla / Entrada |
-| --- | --- |
-| **Mover Cursor** | Flechas de dirección (Arriba, Abajo, Izq, Der) |
-| **Selección Rápida** | Clic Izquierdo del Ratón |
-| **Escribir en Celda** | Teclas alfanuméricas |
-| **Borrar Texto** | `Backspace` (Retroceso) |
-| **Guardar y Salir** | `ESC` |
+* **Flechas de dirección:** Desplazan el cursor hacia Arriba, Abajo, Izquierda o Derecha en la grilla.
 
-## 📂 Estructura Principal del Código (`libs.asm`)
 
-El programa maneja su memoria y video de manera directa para maximizar el rendimiento en arquitecturas antiguas:
+* **Clic Izquierdo:** Posiciona instantáneamente el cursor en una celda visible en pantalla.
 
-* **Buffer de Datos (`gridBuffer`):** Un bloque preasignado de 7296 bytes que mantiene el estado exacto de toda la cuadrícula en memoria, incluyendo separadores verticales (`|`) y retornos de carro para una escritura directa a archivo.
-* **Acceso Directo a Video (VGA):** El motor gráfico dibuja la interfaz inyectando caracteres y atributos de color (gris sobre negro) directamente en el segmento de memoria de video de texto (`0B800h`).
-* **Manejo de Archivos:** Usa las interrupciones estándar de DOS (`int 21h`) para manipular `grilla.txt` de manera transparente al inicio (Carga) y al presionar la tecla de salida (Guardado).
 
-## ⚠️ Notas de Desarrollo
+* **Teclado alfanumérico:** Ingresa caracteres de texto o números dentro de la celda seleccionada.
 
-* El ejecutable principal debe declarar e importar estas funciones (`public`) e implementar el ciclo de eventos (Event Loop) principal que lea el teclado (`int 16h`) e invoque las rutinas expuestas en esta librería.
-* Si se compila sin el archivo `grilla.txt` existente en el mismo directorio, la función `cargarArchivo` omitirá el paso sin fallar, permitiendo iniciar desde cero con una cuadrícula en blanco generada por `inicializarBuffer`.
+
+* **`Backspace` (Código ASCII 8):** Borra el último carácter introducido en la celda activa.
+
+
+* **`ESC` (Código ASCII 27):** Invoca el procesamiento de todas las fórmulas, guarda los datos en el archivo de texto y finaliza el programa cerrando el proceso.
+
+
+
+## 📂 Arquitectura Interna del Código
+
+* **Módulo Principal:** Se encarga de inicializar los segmentos de datos (`@data`), invocar la carga inicial, dibujar la interfaz de usuario por primera vez y gestionar el bucle infinito que escucha los eventos del teclado y el ratón.
+
+
+* **Librería de Funciones:** Alberga la lógica fuerte de escritura directa en la memoria de video VGA (`0B800h`), la manipulación de archivos (`int 21h`), el formateo de cadenas numéricas hacia código ASCII y la lógica de análisis (parsing) que reemplaza las fórmulas por sus resultados.
+
+
+* **Módulo TSR (`int.asm`):** Contiene el script instalador que reescribe el vector de interrupciones llamando a `2560h` y finalmente deja el segmento de la subrutina de suma protegido en la memoria mediante la función `3100h` de MS-DOS.
