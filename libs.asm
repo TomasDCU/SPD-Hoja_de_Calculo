@@ -22,27 +22,22 @@ public cargarArchivo
 public limpiarPantalla
 public dibujarInterfaz
 public actualizarCursor
-public procesarMouse
+public procesarRaton
 public escribirCaracter
 public manejarFlechas
 public borrarCaracter
 public procesarFormulas
-public resolverReferencia
 public guardarArchivo
 public imprimirReg
 public regAAscii
 
-; ==========================================
-; Armado de cuadriculas
-; ==========================================
-
 inicializarBufer proc
-    mov cx, 48 ; CX
-    mov di, 0
+    mov cx, 48              
+    mov di, 0               
 formatearFila:
     push cx
-    mov cx, 150 ; CX
-    mov dx, 0
+    mov cx, 150             
+    mov dx, 0               
 formatearCol:
     mov ax, dx
     mov bl, 10
@@ -59,8 +54,8 @@ guardarCaracter:
     inc dx
     loop formatearCol
     
-    mov byte ptr buferInterfaz[di], 13
-    mov byte ptr buferInterfaz[di+1], 10
+    mov byte ptr buferInterfaz[di], 13     
+    mov byte ptr buferInterfaz[di+1], 10   
     add di, 2
     
     pop cx
@@ -68,27 +63,23 @@ guardarCaracter:
     ret
 inicializarBufer endp
 
-; ==========================================
-; Carga
-; ==========================================
-
 cargarArchivo proc
     push ax
     push bx
     push cx
     push dx
-    mov ah, 3Dh
-    mov al, 0 ; read only
+    mov ah, 3Dh     ;Cargamos en AH el codigo para abrir una funcion existente
+    mov al, 0   ;Modo de solo lectura (read only)
     lea dx, nombreArchivo
     int 21h
-    jc finCargar ; Si no existe salta
+    jc finCargar    ;Jump if carry, si el archivo no existe se pone en 1
     mov buferArchivo, ax
-    mov ah, 3Fh
-    mov bx, buferArchivo
-    mov cx, 7296
-    lea dx, buferInterfaz
+    mov ah, 3Fh     ;Leer de archivo a RAM
+    mov bx, buferArchivo    ;  ORIGEN
+    mov cx, 7296            
+    lea dx, buferInterfaz   ;DESTINO
     int 21h
-    mov ah, 3Eh
+    mov ah, 3Eh     ;Cerrar archivo
     mov bx, buferArchivo
     int 21h
 finCargar:
@@ -99,24 +90,20 @@ finCargar:
     ret
 cargarArchivo endp
 
-; ==========================================
-; CLS
-; ==========================================
-
 limpiarPantalla proc
     push ax
     push es
     push cx
     push di
     
-    mov ax, 3
+    mov ax, 3 ;Activamos modo de video, en modo texto
     int 10h
     
-    mov ax, 0b800h
+    mov ax, 0b800h ; Segmento de video
     mov es, ax
-    mov cx, 2000 ; CX
-    mov ax, 0720h
-    mov di, 0
+    mov cx, 2000      
+    mov ax, 0720h     
+    mov di, 0         
     cld
     rep stosw
     
@@ -124,13 +111,12 @@ limpiarPantalla proc
     pop cx
     pop es
     pop ax
-    ret
+    ret 
 limpiarPantalla endp
 
 ; ==========================================
-; GRÁFICOS
+; GRÁFICOS Y RATÓN
 ; ==========================================
-
 dibujarInterfaz proc
     push ax
     push bx
@@ -143,8 +129,8 @@ dibujarInterfaz proc
     mov ax, 0B800h
     mov es, ax
     
-    mov di, 0
-    mov dx, 0
+    mov di, 0 ;Puntero memoria de video
+    mov dx, 0 ;Contador de caracteres en la fila
 dibCabecera:
     mov ax, dx
     mov bl, 10
@@ -158,78 +144,78 @@ espacioCab:
 impCab:
     mov ah, 07h
     mov es:[di], ax
-    add di, 2
+    add di, 2         ;|          |          |          | 
     inc dx
     cmp dx, 80
     jl dibCabecera
 
-    mov di, 22
+    mov di, 22          
     mov al, 'A'
     cmp paginaX, 1
     jne iniciarLetras
-    mov al, 'H'
+    mov al, 'H'         
 iniciarLetras:
-    mov cx, 7 ; CX
+    mov cx, 7
 dibujarCols:
     mov byte ptr es:[di], al
-    mov byte ptr es:[di+1], 0Eh
-    add di, 20
+    mov byte ptr es:[di+1], 0Eh    ;|          |A         |B         | 
+    add di, 20          
     inc al
     loop dibujarCols
 
-    mov di, 160
+    mov di, 160      ;Vamos al final de la fila de video  
     
     mov al, paginaY
-    mov bl, 24
+    mov bl, 24          ;Acá hacemos un calculo para que el programa sepa que puntero del bufferInterfaz leer   
     mul bl
     
-    inc ax
-    mov bl, al
-    push bx
+    inc ax                  
+    mov bl, al      ;Guardamos BX para numeracion de filas       
+    push bx                 
     dec ax
     
-    mov bx, 152
+    mov bx, 152   ;Bytes de la fila   
     mul bx
-    mov si, ax
+    mov si, ax              
     
-    mov cx, 24 ; CX
+    mov cx, 24              
 dibujarFila:
     push cx
-    mov cx, 80 ; CX
-    mov dx, 0
+    mov cx, 80              
+    mov dx, 0               
 dibujarColumna:
     mov bx, dx
     cmp paginaX, 1
     jne noSalto
-    cmp dx, 10
-    jl noSalto
-    add bx, 70
-noSalto:
+    cmp dx, 10              
+    jl noSalto                          ;|         |         |         | 
+    add bx, 70                          ;|         |         |         |
+noSalto:                                ;|         |          
     mov al, buferInterfaz[si+bx]
-    mov ah, 07h
+    mov ah, 07h             
     mov es:[di], ax
-    add di, 2
-    inc dx
+    add di, 2               
+    inc dx                  
     loop dibujarColumna
     
-    add si, 152
+    add si, 152             
     pop cx
     loop dibujarFila
 
-    pop bx
-    mov di, 160
-    mov cx, 24 ; CX
+    pop bx                  
+    mov di, 160         
+    mov cx, 24
 dibujarFilas:
     mov al, bl
-    aam
-    add ax, 3030h
+    aam                     
+    add ax, 3030h           
     
-    mov byte ptr es:[di+2], ah
-    mov byte ptr es:[di+3], 0Eh
-    mov byte ptr es:[di+4], al
-    mov byte ptr es:[di+5], 0Eh
+    mov byte ptr es:[di+2], ah            ;|01       |         |         |
+    mov byte ptr es:[di+3], 0Eh           ;|02       |         |         |
+    mov byte ptr es:[di+4], al            ;|03       |         |         |
+    mov byte ptr es:[di+5], 0Eh 
 
-    add di, 160
+    add di, 160         
     inc bl
     loop dibujarFilas
 
@@ -243,10 +229,6 @@ dibujarFilas:
     ret
 dibujarInterfaz endp
 
-; ==========================================
-; Cursor
-; ==========================================
-
 actualizarCursor proc
     push ax
     push bx
@@ -255,24 +237,24 @@ actualizarCursor proc
     mov al, celdaActualX
     cmp paginaX, 1
     jne calcularCx
-    sub al, 7
+    sub al, 7               
 calcularCx:
     mov bl, 10
     mul bl
     inc ax
-    mov dl, al
+    mov dl, al              
     
     mov al, celdaActualY
     cmp paginaY, 1
     jne establecerCy
-    sub al, 24
+    sub al, 24              
 establecerCy:
-    mov dh, al
+    mov dh, al  
     
     mov ah, 02h
-    mov bh, 0
+    mov bh, 0      ;Movemos cursor a fila DH columna DL
     int 10h
-    mov letrasCelda, 0
+    mov letrasCelda, 0     
     
     pop dx
     pop bx
@@ -280,24 +262,20 @@ establecerCy:
     ret
 actualizarCursor endp
 
-; ==========================================
-; Mouse
-; ==========================================
-
-procesarMouse proc
+procesarRaton proc
     push ax
     push bx
     push cx
     push dx
 
-    mov ax, 0002h
+    mov ax, 0002h           
     int 33h
 
-    mov ax, cx
+    mov ax, cx ;La interrupcion 33 del main nos devuelve en CX el X del puntero y en DX el Y
     mov cl, 3
-    shr ax, cl
+    shr ax, cl              
     mov bl, 10
-    div bl
+    div bl                  
     cmp al, 1
     jge verificarMaxX
     mov al, 1
@@ -308,15 +286,15 @@ verificarMaxX:
 establecerX:
     cmp paginaX, 1
     jne guardarX
-    add al, 7
+    add al, 7               
 guardarX:
     mov celdaActualX, al
 
-    pop dx
+    pop dx                  
     push dx
     mov ax, dx
     mov cl, 3
-    shr ax, cl
+    shr ax, cl              
     cmp al, 1
     jge verificarMaxY
     mov al, 1
@@ -327,16 +305,16 @@ verificarMaxY:
 establecerY:
     cmp paginaY, 1
     jne guardarY
-    add al, 24
+    add al, 24              
 guardarY:
     mov celdaActualY, al
 
     call actualizarCursor
 
-    mov ax, 0001h
+    mov ax, 0001h           
     int 33h
 
-    mov cx, 0AFFFh ; CX
+    mov cx, 0AFFFh
 pausaClic:
     loop pausaClic
 
@@ -345,12 +323,11 @@ pausaClic:
     pop bx
     pop ax
     ret
-procesarMouse endp
+procesarRaton endp
 
 ; ==========================================
-; Escritura
+; ESCRITURA Y ARCHIVOS
 ; ==========================================
-
 escribirCaracter proc
     cmp letrasCelda, 9
     jge finEscritura
@@ -359,29 +336,29 @@ escribirCaracter proc
     push bx
     push si
 
-    mov caracterTeclado, al
+    mov caracterTeclado, al    
     mov ah, 0Eh
     mov bh, 0
     int 10h
 
     mov al, celdaActualY
-    dec al
-    xor ah, ah ; Limpia la basura de AH
-    mov bx, 152
+    dec al                  
+    xor ah, ah ;Limpia la basura de AH
+    mov bx, 152             
     mul bx
     mov si, ax
     
     mov al, celdaActualX
     mov bl, 10
     mul bl
-    inc ax ; Suma 1 para no borrar el |
-    add si, ax
+    inc ax ;Suma 1 para no borrar el '|'
+    add si, ax              
 
     mov al, letrasCelda
     cbw
-    add si, ax
+    add si, ax              
 
-    mov al, caracterTeclado
+    mov al, caracterTeclado    
     mov buferInterfaz[si], al
     inc letrasCelda
 
@@ -393,9 +370,8 @@ finEscritura:
 escribirCaracter endp
 
 ; ==========================================
-; Navegación
+; NAVEGACIÓN Y 4 PÁGINAS (2x2)
 ; ==========================================
-
 manejarFlechas proc
     cmp ah, 48h
     je mArriba
@@ -429,7 +405,7 @@ mIzquierda:
     jmp mover
 
 mDerecha:
-    cmp celdaActualX, 14
+    cmp celdaActualX, 14      
     jge finMov
     inc celdaActualX
     call verificarPagina
@@ -444,7 +420,7 @@ manejarFlechas endp
 verificarPagina proc
     push ax
     push bx
-    mov bl, 0
+    mov bl, 0           
 
     mov al, celdaActualY
     cmp al, 24
@@ -480,17 +456,13 @@ pxUno:
 finVerificar:
     cmp bl, 1
     jne salirVp
-    call limpiarPantalla
+    call limpiarPantalla            
     call dibujarInterfaz
 salirVp:
     pop bx
     pop ax
     ret
 verificarPagina endp
-
-; ==========================================
-; Borrado
-; ==========================================
 
 borrarCaracter proc
     push ax
@@ -514,7 +486,7 @@ borrarCaracter proc
     mov al, celdaActualY
     dec al
     xor ah, ah ;Limpia la basura de AH
-    mov bx, 152
+    mov bx, 152              
     mul bx
     mov si, ax
     
@@ -535,10 +507,6 @@ finBorrado:
     pop ax
     ret
 borrarCaracter endp
-
-; ==========================================
-; Referencia casillas
-; ==========================================
 
 resolverReferencia proc
     push bx
@@ -637,55 +605,41 @@ buscarInicio:
 comprobarSuma:
     cmp buferInterfaz[si], 'S'
     jne comprobarRes
-    cmp buferInterfaz[si+1], 'U'
-    jne comprobarRes
-    cmp buferInterfaz[si+2], 'M'
-    jne comprobarRes
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('    ; Busca S(
     jne comprobarRes
 
     mov di, si
-    add si, 4
+    add si, 2                       ; Avanza 2 espacios
     jmp extraerNumeros
 
 comprobarRes:
     cmp buferInterfaz[si], 'R'
     jne comprobarMul
-    cmp buferInterfaz[si+1], 'E'
-    jne comprobarMul
-    cmp buferInterfaz[si+2], 'S'
-    jne comprobarMul
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('    ; Busca R(
     jne comprobarMul
 
     mov di, si
-    add si, 4
+    add si, 2
     jmp extraerNumeros
 
 comprobarMul:
     cmp buferInterfaz[si], 'M'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+1], 'U'
     jne comprobarMax
-    cmp buferInterfaz[si+2], 'L'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+3], '('
-    jne saltoSiguiente
+    cmp buferInterfaz[si+1], '('    ; Busca M(
+    jne comprobarMax
 
     mov di, si
-    add si, 4
+    add si, 2
     jmp extraerNumeros
 
 comprobarMax:
-    cmp buferInterfaz[si+1], 'A'
+    cmp buferInterfaz[si], 'X'      ; Busca X(
     jne saltoSiguiente
-    cmp buferInterfaz[si+2], 'X'
-    jne saltoSiguiente
-    cmp buferInterfaz[si+3], '('
+    cmp buferInterfaz[si+1], '('
     jne saltoSiguiente
 
     mov di, si
-    add si, 4
+    add si, 2
 
     mov al, buferInterfaz[si]
     cmp al, '0'
@@ -806,21 +760,15 @@ buscarParenB:
     jmp buscarParenB
 
 finAnalizarB:
-    mov al, buferInterfaz[di]
+    mov al, buferInterfaz[di]       ; Lee la única letra de la función
     cmp al, 'S'
     je hacerSuma
     cmp al, 'R'
     je hacerRes
     cmp al, 'M'
-    je decidirMulOMax
-    jmp errorFormato
-
-decidirMulOMax:
-    mov al, buferInterfaz[di+1]
-    cmp al, 'U'
-    je hacerMul
-    cmp al, 'A'
-    je hacerMaxNum
+    je hacerMul                     ; Va directo a multiplicar
+    cmp al, 'X'
+    je hacerMaxNum                  ; Va directo a calcular el máximo
     jmp errorFormato
 
 hacerSuma:
@@ -894,10 +842,6 @@ finProcesar:
     ret
 procesarFormulas endp
 
-; ==========================================
-; Guardado
-; ==========================================
-
 guardarArchivo proc
     push ax
     push bx
@@ -913,7 +857,7 @@ guardarArchivo proc
     mov buferArchivo, ax
     mov ah, 40h
     mov bx, buferArchivo
-    mov cx, 7296
+    mov cx, 7296            
     lea dx, buferInterfaz
     int 21h
     jc finGuardado
@@ -930,10 +874,6 @@ finGuardado:
     ret
 guardarArchivo endp
 
-; ==========================================
-; Imprimir
-; ==========================================
-
 imprimirReg proc
     push dx
     push ax
@@ -947,10 +887,6 @@ imprimirReg proc
     ret
 imprimirReg endp
 
-; ==========================================
-; R2A
-; ==========================================
-
 regAAscii proc
     push ax
     push dx
@@ -961,20 +897,20 @@ regAAscii proc
     mov dl, 10
 
     div dl
-    add ah, 30h
-    mov byte ptr [bx], ah
+    add ah, 30h               
+    mov byte ptr [bx], ah      
 
     xor ah, ah
     dec bx
     div dl
-    add ah, 30h
-    mov byte ptr [bx], ah
+    add ah, 30h               
+    mov byte ptr [bx], ah      
 
     xor ah, ah
     dec bx
     div dl
-    add ah, 30h
-    mov byte ptr [bx], ah
+    add ah, 30h               
+    mov byte ptr [bx], ah      
 
     pop dx
     pop ax
