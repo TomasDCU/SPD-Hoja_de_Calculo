@@ -61,6 +61,8 @@ leerTecla:
     je salirPrograma
     cmp al, 8
     je borrarTeclado
+    cmp al, 0Dh
+    je procesar
     cmp al, 0
     je esFlecha
     cmp al, 0E0h
@@ -78,6 +80,12 @@ esFlecha:
 
 borrarTeclado:
     call borrarCaracter
+    jmp cicloPrincipal
+
+procesar:
+    call procesarFormulas
+    call dibujarInterfaz ; Refresca la pantalla con los nuevos datos
+    call actualizarCursor ; Vuelve a poner el cursor parpadeando en su celda
     jmp cicloPrincipal
 
 salirPrograma:
