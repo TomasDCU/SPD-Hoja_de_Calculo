@@ -16,7 +16,7 @@ Un programa desarrollado en Ensamblador 8086 (16 bits) que emula las funcionalid
 * **Persistencia de Datos:** Guarda y carga automáticamente el estado de la hoja en un archivo local llamado `grilla.txt`.
 
 
-* **Motor de Fórmulas Avanzado:** Al presionar la tecla de salida, el programa escanea la grilla para procesar automáticamente fórmulas escritas. Actualmente soporta las operaciones matemáticas `S(X,Y)`, `R(X,Y)`, `M(X,Y)` y `X(X,Y)`. Exclusivamente, la función `X(X,Y)` es capaz de analizar y comparar tanto números enteros como caracteres ASCII.
+* **Motor de Fórmulas Avanzado:** Al presionar la tecla de salida o la tecla Enter, el programa escanea la grilla para procesar automáticamente fórmulas escritas. Actualmente soporta las operaciones matemáticas `S(X,Y)`, `R(X,Y)`, `M(X,Y)` y `X(X,Y)`. Exclusivamente, la función `X(X,Y)` es capaz de analizar y comparar tanto números enteros como caracteres ASCII.
 Las fórmulas permiten llamados hacia otras filas/columnas, Ej: S(A14,G5).
 
 
@@ -53,6 +53,9 @@ Para compilar y ejecutar este programa en su totalidad, incluyendo las operacion
 
 
 * **`Backspace` (Código ASCII 8):** Borra el último carácter introducido en la celda activa.
+
+
+* **`Enter` (Código ASCII D):** Actualiza la fórmulas sin necesidad de cerrar el programa.
 
 
 * **`ESC` (Código ASCII 27):** Invoca el procesamiento de todas las fórmulas, guarda los datos en el archivo de texto y finaliza el programa cerrando el proceso.
